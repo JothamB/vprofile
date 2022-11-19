@@ -38,5 +38,24 @@ pipeline
                 sh 'docker rmi 192.168.56.4:5000/vprofile-tomcat-kubernetes:$BUILD_NUMBER'
             }
         }
+        stage('deploy image in kubernetes')
+        {
+            steps
+            {
+                sh 'echo sudo kubectl set image deployment/app-deployment app=192.168.56.4:5000/vprofile-tomcat-kubernetes:$BUILD_NUMBER > kubectl-set-image'
+                script
+                {
+                    def remote = [:]
+                    remote.name = 'master01'
+                    remote.host = '192.168.56.6'
+                    remote.user = 'vagrant'
+                    remote.identityFile = '/var/lib/jenkins/.ssh/id_rsa'
+                    remote.allowAnyHosts = true
+                    sshPut remote: remote, from: 'kubectl-set-image', into: '.'
+                    sshCommand remote: remote, command: 'chmod 744 kubectl-set-image'
+                    sshCommand remote: remote, command: './kubectl-set-image'
+                }
+            }
+        }
     }
 }
